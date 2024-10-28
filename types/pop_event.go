@@ -1,23 +1,23 @@
-package main
+// TODO: tests
+package types
 
 import (
 	"github.com/genudine/saerro-go/translators"
-	"github.com/genudine/saerro-go/types"
 )
 
 type PopEvent struct {
 	WorldID     uint16
 	ZoneID      uint32
 	CharacterID string
-	LoadoutID   string
-	TeamID      types.Faction
+	LoadoutID   uint16
+	TeamID      Faction
 	VehicleID   string
 
 	VehicleName translators.Vehicle
 	ClassName   translators.Class
 }
 
-func PopEventFromESSEvent(event types.ESSEvent, attacker bool) PopEvent {
+func PopEventFromESSEvent(event ESSEvent, attacker bool) PopEvent {
 	pe := PopEvent{
 		WorldID: event.WorldID,
 		ZoneID:  event.ZoneID,
@@ -25,7 +25,7 @@ func PopEventFromESSEvent(event types.ESSEvent, attacker bool) PopEvent {
 
 	if !attacker {
 		pe.CharacterID = event.CharacterID
-		pe.LoadoutID = event.LoadoutID
+		pe.LoadoutID = event.CharacterLoadoutID
 		pe.TeamID = event.TeamID
 		pe.VehicleID = event.VehicleID
 	} else {
@@ -35,8 +35,22 @@ func PopEventFromESSEvent(event types.ESSEvent, attacker bool) PopEvent {
 		pe.VehicleID = event.AttackerVehicleID
 	}
 
+	if pe.LoadoutID == 0 {
+		pe.LoadoutID = event.LoadoutID
+	}
+
 	pe.ClassName = translators.ClassFromLoadout(pe.LoadoutID)
 	pe.VehicleName = translators.VehicleNameFromID(pe.VehicleID)
 
 	return pe
+}
+
+func (pe PopEvent) ToPlayer() *Player {
+	return &Player{
+		CharacterID: pe.CharacterID,
+		ClassName:   string(pe.ClassName),
+		FactionID:   pe.TeamID,
+		ZoneID:      pe.ZoneID,
+		WorldID:     pe.WorldID,
+	}
 }

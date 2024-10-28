@@ -1,19 +1,30 @@
-package main
+package eventhandler
 
 import (
 	"context"
-	"log"
+	"database/sql"
 
+	"github.com/genudine/saerro-go/cmd/ws/ingest"
+	"github.com/genudine/saerro-go/store"
 	"github.com/genudine/saerro-go/types"
 )
 
 type EventHandler struct {
-	Ingest *Ingest
+	Ingest *ingest.Ingest
+}
+
+func NewEventHandler(db *sql.DB) EventHandler {
+	return EventHandler{
+		Ingest: &ingest.Ingest{
+			PlayerStore: store.NewPlayerStore(db),
+		},
+	}
 }
 
 func (eh *EventHandler) HandleEvent(ctx context.Context, event types.ESSEvent) {
 	if event.EventName == "" {
-		log.Println("invalid event; dropping")
+		// log.Println("invalid event; dropping")
+		return
 	}
 
 	if event.EventName == "Death" || event.EventName == "VehicleDestroy" {
@@ -27,14 +38,14 @@ func (eh *EventHandler) HandleEvent(ctx context.Context, event types.ESSEvent) {
 
 func (eh *EventHandler) HandleDeath(ctx context.Context, event types.ESSEvent) {
 	if event.CharacterID != "" && event.CharacterID != "0" {
-		log.Println("got pop event")
-		pe := PopEventFromESSEvent(event, false)
+		// log.Println("got pop event")
+		pe := types.PopEventFromESSEvent(event, false)
 		eh.Ingest.TrackPop(ctx, pe)
 	}
 
 	if event.AttackerCharacterID != "" && event.AttackerCharacterID != "0" && event.AttackerTeamID != 0 {
-		log.Println("got attacker pop event")
-		pe := PopEventFromESSEvent(event, true)
+		pe := types.PopEventFromESSEvent(event, true)
+		// fmt.Println("got attacker pop event", event)
 		eh.Ingest.TrackPop(ctx, pe)
 	}
 }
@@ -45,18 +56,16 @@ func (eh *EventHandler) HandleExperience(ctx context.Context, event types.ESSEve
 	switch event.ExperienceID {
 	case 201: // Galaxy Spawn Bonus
 		vehicleID = "11"
-		break
 	case 233: // Sunderer Spawn Bonus
 		vehicleID = "2"
-		break
-	case 674: // ANT stuff
+	case 674:
+		fallthrough // ANT stuff
 	case 675:
 		vehicleID = "160"
-		break
 	}
 
 	event.VehicleID = vehicleID
-	pe := PopEventFromESSEvent(event, false)
+	pe := types.PopEventFromESSEvent(event, false)
 	eh.Ingest.TrackPop(ctx, pe)
 }
 

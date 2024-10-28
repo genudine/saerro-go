@@ -3,7 +3,7 @@ package translators_test
 import (
 	"testing"
 
-	"github.com/genudine/saerro-go/pkg/translators"
+	"github.com/genudine/saerro-go/translators"
 	"github.com/stretchr/testify/assert"
 )
 

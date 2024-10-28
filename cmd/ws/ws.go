@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
-	"github.com/genudine/saerro-go/types"
-	"nhooyr.io/websocket"
-	"nhooyr.io/websocket/wsjson"
+	"github.com/genudine/saerro-go/cmd/ws/eventhandler"
+	"github.com/genudine/saerro-go/cmd/ws/wsmanager"
+	"github.com/genudine/saerro-go/util"
 )
 
 func main() {
@@ -18,54 +19,41 @@ func main() {
 		log.Fatalln("WS_ADDR is not set.")
 	}
 
-	db, err := sql.Open("sqlite", ":memory:")
+	db, err := util.GetDBConnection(os.Getenv("DB_ADDR"))
 	if err != nil {
-		log.Fatalln("database connection failed", err)
+		log.Fatalln(err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	eventHandler := eventhandler.NewEventHandler(db)
+	wsm := wsmanager.NewWebsocketManager(eventHandler)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
-	wsConn, _, err := websocket.Dial(ctx, wsAddr, nil)
+	err = wsm.Connect(ctx, wsAddr)
 	if err != nil {
-		log.Fatalln("Connection to ESS failed.", err)
-	}
-	defer wsConn.Close(websocket.StatusInternalError, "internal error. bye")
-
-	err = wsjson.Write(ctx, wsConn, map[string]interface{}{
-		"action":     "subscribe",
-		"worlds":     "all",
-		"eventNames": getEventNames(),
-		"characters": []string{"all"},
-		"service":    "event",
-
-		"logicalAndCharactersWithWorlds": true,
-	})
-	if err != nil {
-		log.Fatalln("subscription write failed", err)
+		log.Fatalln(err)
 	}
 
-	log.Println("subscribe done")
+	go wsm.Start()
 
-	eventHandler := EventHandler{
-		Ingest: &Ingest{
-			DB: db,
-		},
-	}
-
-	for {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-
-		var event types.ESSData
-		err := wsjson.Read(ctx, wsConn, &event)
+	go func() {
+		time.Sleep(time.Second * 1)
+		err = wsm.Subscribe(ctx)
 		if err != nil {
-			log.Println("wsjson read failed", err)
-			cancel()
-			continue
+			wsm.FailClose()
+			log.Fatalln("subscribe failed", err)
 		}
+		log.Println("sent subscribe")
+	}()
 
-		go eventHandler.HandleEvent(ctx, event.Payload)
+	exitSignal := make(chan os.Signal, 1)
+	signal.Notify(exitSignal, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case <-exitSignal:
+		log.Println("got interrupt, exiting...")
+	case <-wsm.Closed:
+		log.Println("websocket closed, bailing...")
 	}
-
-	wsConn.Close(websocket.StatusNormalClosure, "")
 }
