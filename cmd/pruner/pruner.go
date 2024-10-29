@@ -17,17 +17,22 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	playerStore := store.NewPlayerStore(db)
+	vehicleStore := store.NewVehicleStore(db)
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
+	run(ctx, playerStore, vehicleStore)
+}
+
+func run(ctx context.Context, ps store.IPlayerStore, vs store.IVehicleStore) {
 	var wg sync.WaitGroup
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-
-		playerStore := store.NewPlayerStore(db)
-		i, err := playerStore.Prune(ctx)
+		i, err := ps.Prune(ctx)
 		if err != nil {
 			log.Println("pruner: playerStore.Prune failed")
 		}
@@ -38,9 +43,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-
-		vehicleStore := store.NewVehicleStore(db)
-		i, err := vehicleStore.Prune(ctx)
+		i, err := vs.Prune(ctx)
 		if err != nil {
 			log.Println("pruner: vehicleStore.Prune failed")
 		}

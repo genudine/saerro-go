@@ -9,8 +9,15 @@ import (
 	"github.com/genudine/saerro-go/types"
 )
 
+type IEventHandler interface {
+	HandleEvent(ctx context.Context, event types.ESSEvent)
+	HandleDeath(ctx context.Context, event types.ESSEvent)
+	HandleExperience(ctx context.Context, event types.ESSEvent)
+	HandleAnalytics(ctx context.Context, event types.ESSEvent)
+}
+
 type EventHandler struct {
-	Ingest *ingest.Ingest
+	Ingest ingest.IIngest
 }
 
 func NewEventHandler(db *sql.DB) EventHandler {

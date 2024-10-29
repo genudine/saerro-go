@@ -12,23 +12,25 @@ import (
 	"github.com/genudine/saerro-go/types"
 )
 
-func mkIngest(t *testing.T) (context.Context, *ingest.Ingest, *storemock.MockPlayerStore) {
+func mkIngest(t *testing.T) (context.Context, *ingest.Ingest, *storemock.MockPlayerStore, *storemock.MockVehicleStore) {
 	t.Helper()
 
 	ps := new(storemock.MockPlayerStore)
+	vs := new(storemock.MockVehicleStore)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	t.Cleanup(cancel)
 
 	i := &ingest.Ingest{
-		PlayerStore: ps,
+		PlayerStore:  ps,
+		VehicleStore: vs,
 	}
 
-	return ctx, i, ps
+	return ctx, i, ps, vs
 }
 
 func TestTrackPopHappyPath(t *testing.T) {
-	ctx, i, ps := mkIngest(t)
+	ctx, i, ps, _ := mkIngest(t)
 
 	// Combat Medic on Emerald
 	event := types.PopEvent{
@@ -48,7 +50,7 @@ func TestTrackPopHappyPath(t *testing.T) {
 }
 
 func TestTrackPopFixup(t *testing.T) {
-	ctx, i, ps := mkIngest(t)
+	ctx, i, ps, _ := mkIngest(t)
 
 	event := types.PopEvent{
 		WorldID:     17,
@@ -68,7 +70,7 @@ func TestTrackPopFixup(t *testing.T) {
 }
 
 func TestTrackPopFixupFailed(t *testing.T) {
-	ctx, i, ps := mkIngest(t)
+	ctx, i, ps, _ := mkIngest(t)
 
 	event := types.PopEvent{
 		WorldID:     17,

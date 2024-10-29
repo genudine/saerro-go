@@ -11,6 +11,14 @@ import (
 	"github.com/avast/retry-go"
 )
 
+type IVehicleStore interface {
+	IsMigrated(context.Context) bool
+	RunMigration(context.Context, bool)
+	Insert(context.Context, *types.Vehicle) error
+	GetOne(context.Context, string) (*types.Vehicle, error)
+	Prune(context.Context) (int64, error)
+}
+
 type VehicleStore struct {
 	DB *sql.DB
 

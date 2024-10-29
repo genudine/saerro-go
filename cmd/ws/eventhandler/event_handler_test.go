@@ -5,32 +5,28 @@ import (
 	"testing"
 	"time"
 
-	"github.com/avast/retry-go"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/genudine/saerro-go/cmd/ws/ingest"
-	"github.com/genudine/saerro-go/store"
-	"github.com/genudine/saerro-go/translators"
+	"github.com/genudine/saerro-go/store/storemock"
 	"github.com/genudine/saerro-go/types"
-	"github.com/genudine/saerro-go/util/testutil"
 )
 
-func getEventHandlerTestShim(t *testing.T) (EventHandler, context.Context) {
+func getEventHandlerTestShim(t *testing.T) (EventHandler, context.Context, *storemock.MockPlayerStore) {
 	t.Helper()
 
-	db := testutil.GetTestDB(t)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	t.Cleanup(cancel)
 
+	ps := new(storemock.MockPlayerStore)
+
 	return EventHandler{
 		Ingest: &ingest.Ingest{
-			PlayerStore: store.NewPlayerStore(db),
+			PlayerStore: ps,
 		},
-	}, ctx
+	}, ctx, ps
 }
 
 func TestHandleDeath(t *testing.T) {
-	eh, ctx := getEventHandlerTestShim(t)
+	eh, ctx, ps := getEventHandlerTestShim(t)
 
 	event := types.ESSEvent{
 		EventName: "Death",
@@ -46,21 +42,17 @@ func TestHandleDeath(t *testing.T) {
 		AttackerTeamID:      types.TR,
 	}
 
+	p1 := types.PopEventFromESSEvent(event, false).ToPlayer()
+	p2 := types.PopEventFromESSEvent(event, true).ToPlayer()
+
+	ps.On("Insert", ctx, p1).Return(nil)
+	ps.On("Insert", ctx, p2).Return(nil)
+
 	eh.HandleDeath(ctx, event)
-
-	player1, err := eh.Ingest.PlayerStore.GetOne(ctx, event.CharacterID)
-	assert.NoError(t, err, "player1 fetch failed")
-	assert.Equal(t, event.CharacterID, player1.CharacterID)
-	assert.Equal(t, string(translators.ClassFromLoadout(event.LoadoutID)), player1.ClassName)
-
-	player2, err := eh.Ingest.PlayerStore.GetOne(ctx, event.AttackerCharacterID)
-	assert.NoError(t, err, "player2 fetch failed")
-	assert.Equal(t, event.AttackerCharacterID, player2.CharacterID)
-	assert.Equal(t, string(translators.ClassFromLoadout(event.AttackerLoadoutID)), player2.ClassName)
 }
 
 func TestHandleExperience(t *testing.T) {
-	eh, ctx := getEventHandlerTestShim(t)
+	eh, ctx, ps := getEventHandlerTestShim(t)
 
 	event := types.ESSEvent{
 		EventName: "GainExperience",
@@ -74,15 +66,14 @@ func TestHandleExperience(t *testing.T) {
 		ExperienceID: 674,
 	}
 
+	p := types.PopEventFromESSEvent(event, false).ToPlayer()
+	ps.On("Insert", ctx, p).Return(nil)
+
 	eh.HandleExperience(ctx, event)
-	player, err := eh.Ingest.PlayerStore.GetOne(ctx, event.CharacterID)
-	assert.NoError(t, err, "player fetch check failed")
-	assert.Equal(t, event.CharacterID, player.CharacterID)
-	assert.Equal(t, string(translators.ClassFromLoadout(event.LoadoutID)), player.ClassName)
 }
 
 func TestHandleAnalytics(t *testing.T) {
-	eh, ctx := getEventHandlerTestShim(t)
+	eh, ctx, _ := getEventHandlerTestShim(t)
 	event := types.ESSEvent{
 		EventName: "GainExperience",
 		WorldID:   17,
@@ -99,7 +90,7 @@ func TestHandleAnalytics(t *testing.T) {
 }
 
 func TestHandleEvent(t *testing.T) {
-	eh, ctx := getEventHandlerTestShim(t)
+	eh, ctx, ps := getEventHandlerTestShim(t)
 
 	events := []types.ESSEvent{
 		{
@@ -107,9 +98,9 @@ func TestHandleEvent(t *testing.T) {
 			WorldID:   17,
 			ZoneID:    2,
 
-			CharacterID: "LyytisDoll",
-			LoadoutID:   3,
-			TeamID:      types.NC,
+			CharacterID:        "LyytisDoll",
+			CharacterLoadoutID: 3,
+			TeamID:             types.NC,
 
 			AttackerCharacterID: "Lyyti",
 			AttackerLoadoutID:   3,
@@ -126,19 +117,19 @@ func TestHandleEvent(t *testing.T) {
 
 			ExperienceID: 201,
 		},
+		{
+			EventName: "",
+		},
 	}
+
+	p1 := types.PopEventFromESSEvent(events[0], false).ToPlayer()
+	ps.On("Insert", ctx, p1).Return(nil).Once()
+	p2 := types.PopEventFromESSEvent(events[0], true).ToPlayer()
+	ps.On("Insert", ctx, p2).Return(nil).Once()
+	p3 := types.PopEventFromESSEvent(events[1], false).ToPlayer()
+	ps.On("Insert", ctx, p3).Return(nil).Once()
 
 	for _, event := range events {
 		eh.HandleEvent(ctx, event)
-	}
-
-	checkPlayers := []string{"LyytisDoll", "Lyyti", "DollNC"}
-	for _, id := range checkPlayers {
-		// eventual consistency <333
-		err := retry.Do(func() error {
-			_, err := eh.Ingest.PlayerStore.GetOne(ctx, id)
-			return err
-		})
-		assert.NoError(t, err)
 	}
 }

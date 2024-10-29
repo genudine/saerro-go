@@ -9,8 +9,13 @@ import (
 	"github.com/genudine/saerro-go/types"
 )
 
+type IIngest interface {
+	TrackPop(context.Context, types.PopEvent)
+}
+
 type Ingest struct {
-	PlayerStore store.IPlayerStore
+	PlayerStore  store.IPlayerStore
+	VehicleStore store.IVehicleStore
 }
 
 func (i *Ingest) TrackPop(ctx context.Context, event types.PopEvent) {
