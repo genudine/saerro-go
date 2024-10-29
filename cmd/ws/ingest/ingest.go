@@ -23,13 +23,23 @@ func (i *Ingest) TrackPop(ctx context.Context, event types.PopEvent) {
 
 	err := i.fixupPlayer(ctx, player)
 	if err != nil {
-		log.Println("ingest: player fixup failed, dropping event", err)
+		// log.Println("ingest: player fixup failed, dropping event", err)
 		return
 	}
 
 	err = i.PlayerStore.Insert(ctx, player)
 	if err != nil {
 		log.Println("TrackPop Insert failed", err)
+	}
+
+	if event.VehicleName == "unknown" {
+		return
+	}
+
+	vehicle := event.ToVehicle()
+	err = i.VehicleStore.Insert(ctx, vehicle)
+	if err != nil {
+		log.Println("TrackVehicle Insert failed", err)
 	}
 }
 

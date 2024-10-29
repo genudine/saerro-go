@@ -10,10 +10,7 @@ import (
 )
 
 type IEventHandler interface {
-	HandleEvent(ctx context.Context, event types.ESSEvent)
-	HandleDeath(ctx context.Context, event types.ESSEvent)
-	HandleExperience(ctx context.Context, event types.ESSEvent)
-	HandleAnalytics(ctx context.Context, event types.ESSEvent)
+	HandleEvent(context.Context, types.ESSEvent)
 }
 
 type EventHandler struct {
@@ -23,7 +20,8 @@ type EventHandler struct {
 func NewEventHandler(db *sql.DB) EventHandler {
 	return EventHandler{
 		Ingest: &ingest.Ingest{
-			PlayerStore: store.NewPlayerStore(db),
+			PlayerStore:  store.NewPlayerStore(db),
+			VehicleStore: store.NewVehicleStore(db),
 		},
 	}
 }
@@ -48,6 +46,7 @@ func (eh *EventHandler) HandleDeath(ctx context.Context, event types.ESSEvent) {
 		// log.Println("got pop event")
 		pe := types.PopEventFromESSEvent(event, false)
 		eh.Ingest.TrackPop(ctx, pe)
+
 	}
 
 	if event.AttackerCharacterID != "" && event.AttackerCharacterID != "0" && event.AttackerTeamID != 0 {

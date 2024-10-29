@@ -1,0 +1,16 @@
+{
+  "payload": {
+    "amount": "15",
+    "character_id": "5429585904317827249",
+    "event_name": "GainExperience",
+    "experience_id": "55",
+    "loadout_id": "19",
+    "other_id": "5429585904317827633",
+    "team_id": "1",
+    "timestamp": "1730180206",
+    "world_id": "40",
+    "zone_id": "8"
+  },
+  "service": "event",
+  "type": "serviceMessage"
+}

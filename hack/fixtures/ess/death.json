@@ -1,0 +1,21 @@
+{
+  "payload": {
+    "attacker_character_id": "5429585904316728705",
+    "attacker_fire_mode_id": "7531",
+    "attacker_loadout_id": "6",
+    "attacker_team_id": "2",
+    "attacker_vehicle_id": "0",
+    "attacker_weapon_id": "7233",
+    "character_id": "5429550526394041409",
+    "character_loadout_id": "13",
+    "event_name": "Death",
+    "is_critical": "0",
+    "is_headshot": "0",
+    "team_id": "3",
+    "timestamp": "1730180202",
+    "world_id": "40",
+    "zone_id": "6"
+  },
+  "service": "event",
+  "type": "serviceMessage"
+}

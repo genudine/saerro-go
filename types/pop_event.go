@@ -54,3 +54,13 @@ func (pe PopEvent) ToPlayer() *Player {
 		WorldID:     pe.WorldID,
 	}
 }
+
+func (pe PopEvent) ToVehicle() *Vehicle {
+	return &Vehicle{
+		CharacterID: pe.CharacterID,
+		VehicleName: string(pe.VehicleName),
+		FactionID:   pe.TeamID,
+		ZoneID:      pe.ZoneID,
+		WorldID:     pe.WorldID,
+	}
+}

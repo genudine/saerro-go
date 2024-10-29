@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/genudine/saerro-go/types"
+	"github.com/genudine/saerro-go/util"
 
 	"github.com/avast/retry-go"
 )
@@ -94,7 +95,7 @@ func (ps *VehicleStore) Insert(ctx context.Context, vehicle *types.Vehicle) erro
 				zone_id = EXCLUDED.zone_id,
 				vehicle_name = EXCLUDED.vehicle_name
 			`,
-			vehicle.LastUpdated,
+			util.TimeToString(vehicle.LastUpdated),
 			vehicle.CharacterID,
 			vehicle.WorldID,
 			vehicle.FactionID,
