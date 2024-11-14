@@ -1,6 +1,6 @@
 services:
-  tsdb:
-    image: docker.io/timescale/timescaledb:latest-pg14
+  postgres:
+    image: docker.io/library/postgres
     environment:
       POSTGRES_PASSWORD: saerro321
       POSTGRES_USER: saerrouser

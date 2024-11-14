@@ -147,9 +147,12 @@ func (ps *VehicleStore) Prune(ctx context.Context) (int64, error) {
 
 	// Avoid using sql idioms here for portability
 	// SQLite and PgSQL do now() differently, we don't need to at all.
-	res, err := ps.DB.ExecContext(ctx, `
-		DELETE FROM vehicles WHERE last_updated < $1;
-	`, time.Now().Add(-time.Minute*15))
+	res, err := ps.DB.ExecContext(ctx,
+		`
+			DELETE FROM vehicles WHERE last_updated < $1;
+		`,
+		util.TimeToString(time.Now().Add(-time.Minute*15)),
+	)
 	if err != nil {
 		return 0, err
 	}

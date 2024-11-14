@@ -39,6 +39,7 @@ func TestTrackPopHappyPath(t *testing.T) {
 		TeamID:      types.TR,
 		LoadoutID:   4,
 		ClassName:   translators.CombatMedic,
+		VehicleName: "unknown",
 		CharacterID: "aaaa",
 	}
 
@@ -57,6 +58,7 @@ func TestTrackPopFixup(t *testing.T) {
 		ZoneID:      4,
 		TeamID:      0,
 		ClassName:   "unknown",
+		VehicleName: "unknown",
 		CharacterID: "bbbb",
 	}
 	pastEventPlayer := event.ToPlayer()
@@ -77,6 +79,7 @@ func TestTrackPopFixupFailed(t *testing.T) {
 		ZoneID:      4,
 		TeamID:      0,
 		ClassName:   "unknown",
+		VehicleName: "unknown",
 		CharacterID: "bbbb",
 	}
 
